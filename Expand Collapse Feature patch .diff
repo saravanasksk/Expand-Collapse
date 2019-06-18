@@ -1,0 +1,132 @@
+diff --git a/UWP/SfDiagram.UWP/Src/Diagram/DiagramControl_Command.cs b/UWP/SfDiagram.UWP/Src/Diagram/DiagramControl_Command.cs
+index 3c9786f..ea628e8 100644
+--- a/UWP/SfDiagram.UWP/Src/Diagram/DiagramControl_Command.cs
++++ b/UWP/SfDiagram.UWP/Src/Diagram/DiagramControl_Command.cs
+@@ -293,6 +293,7 @@ namespace Syncfusion.UI.Xaml.Diagram
+ 
+     internal partial class DiagramCommands : DiagramElementViewModel, ISharedData, IDiagramCommands
+     {
++       
+         private SharedData _mSharedData;
+ 
+         private ObservableElements<object, IInternalNode> _mInternalNodes
+@@ -398,92 +399,64 @@ namespace Syncfusion.UI.Xaml.Diagram
+         }
+             
+         public void OnExpandCollapse(object sender)
+-        {
+-            if (sender != null && _mSharedData.Graph.Constraints.Contains(GraphConstraints.Commands))
++        {      
++                  
++            if (sender  is IExpandCollapseParameter)
+             {
+-                if (sender is IExpandCollapseParameter)
++                IExpandCollapseParameter param = sender as IExpandCollapseParameter;
++                if (param.node != null)
+                 {
+-                    IExpandCollapseParameter param = sender as IExpandCollapseParameter;
+-                    if (param != null && param.node != null)
++                    IInternalNode selectednode = (((param as IExpandCollapseParameter).node as INode)).Info as IInternalNode;
++
++                    if (selectednode.IsExpanded)
+                     {
+-                        IInternalNode n1 = _mSharedData.Graph.GetNodeWrapper(param.node, false);
+-                        if (n1.IsExpanded && param.IsEnableAnimation)
+-                        {
+-                            Hide(param.node, param.IsEnableAnimation);
+-                            hidenode = null;
+-                        }
+-                        else
+-                        {
+-                            Show(param.node, param.IsEnableAnimation);
+-                            firstnode = null;
+-                        }
+-                        if (param.IsUpdateLayout)
+-                        {
+-                            _mSharedData.Graph.LayoutManager.Layout.UpdateLayout();
+-                        }
++                        Hide(selectednode);                      
+                     }
++                    else
++                    {
++                        Show(selectednode);                       
++                    }                    
+                 }
+             }
+         }
+ 
+-        IInternalNode firstnode = null;
+-        private void Show(object node, bool enable)
++        private void Show(object node)
+         {
+-            IInternalNode parentnode = _mSharedData.Graph.GetNodeWrapper(node, false);
++            IInternalNode parentnode = node as NodeWrapper;
+ 
+-            if (firstnode == null)
++            if(parentnode.IsSelected)
+             {
+-                firstnode = parentnode;
+                 parentnode.IsExpanded = true;
+             }
+-            if (!(parentnode.IsExpanded) && parentnode == firstnode)
+-            {
+-                foreach (IInternalConnector outconnector in parentnode.InternalOutConnectors)
+-                {
+-                    (outconnector.View as Connector).Visibility = Visibility.Visible;
+-                    (outconnector.TargetNode as Node).Visibility = Visibility.Visible;
+-                    Show(outconnector.TargetNode as Node, enable);
+-                    parentnode.IsExpanded = true;
+-                }
+-            }
+-            else if (parentnode.IsExpanded)
++            if (parentnode.IsExpanded)
+             {
+                 foreach (IInternalConnector outconnector in parentnode.InternalOutConnectors)
+                 {
+                     (outconnector.View as Connector).Visibility = Visibility.Visible;
+-                    (outconnector.TargetNode as Node).Visibility = Visibility.Visible;
+-                    Show(outconnector.TargetNode as Node, enable);
+-                    parentnode.IsExpanded = true;
+-                    ExpandAnimation(outconnector.TargetNode as Node);
+-#if SURFACE
+-                    Transition(outconnector.TargetNode as Node);
+-#endif
+-                    ExpandAnimation(outconnector.View as Connector);
++                    ((outconnector.TargetNodeInfo as NodeWrapper).View as Node).Visibility = Visibility.Visible;
++                    Show(outconnector.TargetNodeInfo as NodeWrapper);                   
+                 }
+-            }
++            }          
+         }
+ 
+-        IInternalNode hidenode = null;
+-        private void Hide(object node, bool enable)
++        
++     private void Hide(object node)
+         {
+-            IInternalNode parentnode = _mSharedData.Graph.GetNodeWrapper(node, false);
++            IInternalNode parentnode = node as NodeWrapper;
+             if (parentnode.IsExpanded)
+             {
+-                if (hidenode == null)
++                if(parentnode.IsSelected)
+                 {
+-                    hidenode = parentnode;
+                     parentnode.IsExpanded = false;
+                 }
+ 
+                 foreach (IInternalConnector n in parentnode.InternalOutConnectors)
+                 {
+                     (n.View as Connector).Visibility = Visibility.Collapsed;
+-                    (n.TargetNode as Node).Visibility = Visibility.Collapsed;
+-                    Hide(n.TargetNode as Node, enable);
+-                    CollapseAnimation(n.View as Connector);
+-                    CollapseAnimation(n.TargetNode as Node);
++                    ((n.TargetNodeInfo as NodeWrapper).View as Node).Visibility = Visibility.Collapsed;                    
++                    Hide(n.TargetNodeInfo as NodeWrapper);
+                 }
+-            }
++            }          
+         }
+ 
+ #if SURFACE
